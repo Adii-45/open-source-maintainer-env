@@ -1,0 +1,9 @@
+Metadata-Version: 2.4
+Name: opensource-maintainer-env
+Version: 0.1.0
+Summary: An environment simulating an open-source repo maintainer.
+Requires-Dist: openenv-core
+Requires-Dist: openai
+Requires-Dist: pydantic
+Requires-Dist: fastapi
+Requires-Dist: uvicorn

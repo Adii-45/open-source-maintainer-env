@@ -1,0 +1,17 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "opensource-maintainer-env"
+version = "0.1.0"
+description = "An environment simulating an open-source repo maintainer."
+dependencies = [
+    "openenv-core",
+    "openai",
+    "pydantic",
+    "fastapi",
+    "uvicorn"
+]
+[project.scripts]
+server = "server.app:main"
