@@ -105,34 +105,34 @@ class OpenSourceMaintainerEnv:
         return False
 
     # ==========================================
-    # 3. Deterministic Graders (0.0 to 1.0)
+    # 3. Deterministic Graders (Must be strictly between 0 and 1)
     # ==========================================
 
     def _grade_task_1(self, action: MaintainerAction) -> MaintainerReward:
         # Easy: Must label as a bug.
         if action.decision == "add_labels" and "bug" in action.labels_to_add:
-            return MaintainerReward(score=1.0, feedback="Perfect. Accurately labeled the frontend UI bug.")
+            return MaintainerReward(score=0.99, feedback="Perfect. Accurately labeled the frontend UI bug.")
         elif action.decision == "add_labels":
             return MaintainerReward(score=0.5, feedback="Labeled, but missed the 'bug' tag.")
-        return MaintainerReward(score=0.0, feedback="Failed to label a clear bug report.")
+        return MaintainerReward(score=0.01, feedback="Failed to label a clear bug report.")
 
     def _grade_task_2(self, action: MaintainerAction) -> MaintainerReward:
         # Medium: Must recognize it's a duplicate and close it.
         if action.decision == "close_duplicate":
-            return MaintainerReward(score=1.0, feedback="Correctly identified and closed the duplicate issue.")
+            return MaintainerReward(score=0.99, feedback="Correctly identified and closed the duplicate issue.")
         elif action.decision == "add_labels" and "duplicate" in action.labels_to_add:
             return MaintainerReward(score=0.8, feedback="Labeled as duplicate, but should have closed it.")
-        return MaintainerReward(score=0.0, feedback="Failed to handle the duplicate issue.")
+        return MaintainerReward(score=0.01, feedback="Failed to handle the duplicate issue.")
 
     def _grade_task_3(self, action: MaintainerAction) -> MaintainerReward:
         # Hard: Must reject/request changes on a PR using an inefficient sorting algorithm (Bubble Sort).
         if action.decision == "request_changes":
             if "bubble sort" in action.comment.lower() or "inefficient" in action.comment.lower() or "time complexity" in action.comment.lower():
-                return MaintainerReward(score=1.0, feedback="Excellent review. Caught the O(n^2) time complexity flaw in the linked list sort.")
+                return MaintainerReward(score=0.99, feedback="Excellent review. Caught the O(n^2) time complexity flaw in the linked list sort.")
             return MaintainerReward(score=0.7, feedback="Requested changes, but missed explaining the time complexity issue with Bubble Sort.")
         elif action.decision == "approve_pr":
-            return MaintainerReward(score=0.0, feedback="Critical failure: Approved a PR with an inefficient algorithm for a core data structure.")
-        return MaintainerReward(score=0.0, feedback="Did not request changes on flawed code.")
+            return MaintainerReward(score=0.01, feedback="Critical failure: Approved a PR with an inefficient algorithm for a core data structure.")
+        return MaintainerReward(score=0.01, feedback="Did not request changes on flawed code.")
 
 # Test it natively in Colab
 if __name__ == "__main__":
