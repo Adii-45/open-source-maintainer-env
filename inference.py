@@ -4,7 +4,25 @@ from openai import OpenAI
 from github_env import OpenSourceMaintainerEnv, MaintainerAction
 
 # ==========================================
-# 1. Setup API Client (Strictly matching checklist format)
+# Strict Logging Functions (Required by Grader)
+# ==========================================
+def log_start(task: str, env: str, model: str) -> None:
+    print(f"[START] task={task} env={env} model={model}", flush=True)
+
+def log_step(step: int, action: str, reward: float, done: bool, error: str) -> None:
+    error_val = error if error else "null"
+    done_val = str(done).lower()
+    # The grader breaks if there are newlines in the action string
+    action_clean = action.replace('\n', ' ').replace('\r', '') if action else "none"
+    print(f"[STEP] step={step} action={action_clean} reward={reward:.2f} done={done_val} error={error_val}", flush=True)
+
+def log_end(success: bool, steps: int, score: float, rewards: list) -> None:
+    rewards_str = ",".join(f"{r:.2f}" for r in rewards)
+    print(f"[END] success={str(success).lower()} steps={steps} score={score:.3f} rewards={rewards_str}", flush=True)
+
+
+# ==========================================
+# 1. Setup API Client
 # ==========================================
 API_BASE_URL = os.getenv("API_BASE_URL", "https://router.huggingface.co/v1")
 MODEL_NAME = os.getenv("MODEL_NAME", "meta-llama/Meta-Llama-3-70B-Instruct")
@@ -31,29 +49,29 @@ You must respond strictly in JSON format matching this schema:
 # ==========================================
 # 3. The Evaluation Loop
 # ==========================================
-# REQUIRED BY GRADER: Print START before the loop begins
-print("START")
-print("🚀 Starting Agentic Evaluation...\n")
-
-# Initialize the environment we just built
 env = OpenSourceMaintainerEnv()
 
+# Variables to track for the final [END] log
+step_count = 0
+rewards_list = []
+
+# REQUIRED GRADER LOG: Start
+log_start(task="maintainer_eval", env="opensource-maintainer-env", model=MODEL_NAME)
+
 while True:
-    # REQUIRED BY GRADER: Print STEP at the beginning of each iteration
-    print("STEP")
+    step_count += 1
     obs = env.reset()
-    task_id = env.tasks[env.current_task_idx]["id"]
-    print("=" * 40)
-    print(f"📋 Running {task_id}")
-    print("=" * 40)
-    print(f"Observation Title: {obs.title}")
     
-    # Construct the prompt for the LLM based on what the environment sees
+    # Construct the prompt
     user_prompt = f"Ticket Type: {obs.type}\nTitle: {obs.title}\nBody: {obs.body}\n"
     if obs.code_diff:
         user_prompt += f"Code Diff:\n{obs.code_diff}\n"
 
-    print("🤖 Agent is thinking...")
+    action_str = ""
+    current_reward = 0.0
+    is_done = False
+    error_msg = None
+
     try:
         # Call the LLM
         response = client.chat.completions.create(
@@ -62,34 +80,39 @@ while True:
                 {"role": "system", "content": SYSTEM_PROMPT},
                 {"role": "user", "content": user_prompt}
             ],
-            response_format={"type": "json_object"}, # Force JSON output
-            temperature=0.1 # Keep it low so the agent is deterministic and analytical
+            response_format={"type": "json_object"}, 
+            temperature=0.1 
         )
         
-        # Parse the LLM's JSON output
+        # Parse the output
         llm_output = response.choices[0].message.content
         action_dict = json.loads(llm_output)
-        
-        # Convert the raw JSON back into our strict Pydantic Action model
         action = MaintainerAction(**action_dict)
         
-        print(f"➡️  Agent Decision: {action.decision}")
-        if action.labels_to_add: 
-            print(f"🏷️  Labels: {action.labels_to_add}")
-        if action.comment: 
-            print(f"💬 Comment: {action.comment}")
-
-        # Feed the action back into the environment to get graded
+        # Save a clean string version of the action for the grader log
+        action_str = json.dumps(action_dict)
+        
+        # Feed action to environment
         new_obs, reward, done, info = env.step(action)
-        print(f"\n🎯 Reward: {reward} / 1.0")
-        print(f"📝 Grader Feedback: {info['feedback']}\n")
+        current_reward = float(reward)
+        is_done = bool(done)
 
     except Exception as e:
-        print(f"❌ Error during LLM call or parsing: {e}")
+        error_msg = str(e).replace('\n', ' ')
+        is_done = True # Force stop on error so we don't loop infinitely
 
-    # Move to the next task, or break if we are done
-    if not env.next_task():
-        print("✅ All tasks completed!")
-        # REQUIRED BY GRADER: Print END when all tasks are finished
-        print("END")
+    rewards_list.append(current_reward)
+
+    # REQUIRED GRADER LOG: Step
+    log_step(step=step_count, action=action_str, reward=current_reward, done=is_done, error=error_msg)
+
+    # Move to the next task, or break if done/errored
+    if not env.next_task() or error_msg:
         break
+
+# Calculate final math for the grader
+total_score = sum(rewards_list) / len(rewards_list) if rewards_list else 0.0
+is_success = total_score > 0.5 
+
+# REQUIRED GRADER LOG: End
+log_end(success=is_success, steps=step_count, score=total_score, rewards=rewards_list)
