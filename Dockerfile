@@ -1,4 +1,5 @@
-FROM python:3.10-slim
+# Pulling from AWS Public Registry to bypass Docker Hub rate limits
+FROM public.ecr.aws/docker/library/python:3.10-slim
 
 # Set working directory
 WORKDIR /app
