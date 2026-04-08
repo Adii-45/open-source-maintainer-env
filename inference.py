@@ -12,14 +12,12 @@ def log_start(task: str, env: str, model: str) -> None:
 def log_step(step: int, action: str, reward: float, done: bool, error: str) -> None:
     error_val = error if error else "null"
     done_val = str(done).lower()
-    # The grader breaks if there are newlines in the action string
     action_clean = action.replace('\n', ' ').replace('\r', '') if action else "none"
     print(f"[STEP] step={step} action={action_clean} reward={reward:.2f} done={done_val} error={error_val}", flush=True)
 
 def log_end(success: bool, steps: int, score: float, rewards: list) -> None:
     rewards_str = ",".join(f"{r:.2f}" for r in rewards)
     print(f"[END] success={str(success).lower()} steps={steps} score={score:.3f} rewards={rewards_str}", flush=True)
-
 
 # ==========================================
 # 1. Setup API Client
@@ -31,7 +29,7 @@ HF_TOKEN = os.getenv("HF_TOKEN")
 client = OpenAI(base_url=API_BASE_URL, api_key=HF_TOKEN)
 
 # ==========================================
-# 2. System Prompt (The Agent's Brain)
+# 2. System Prompt
 # ==========================================
 SYSTEM_PROMPT = """
 You are an autonomous Open Source Repository Maintainer agent.
@@ -51,30 +49,25 @@ You must respond strictly in JSON format matching this schema:
 # ==========================================
 env = OpenSourceMaintainerEnv()
 
-# Variables to track for the final [END] log
-step_count = 0
-rewards_list = []
-
-# REQUIRED GRADER LOG: Start
-log_start(task="maintainer_eval", env="opensource-maintainer-env", model=MODEL_NAME)
-
 while True:
-    step_count += 1
     obs = env.reset()
     
-    # Construct the prompt
+    # 🎯 FIX: Get the actual task ID (e.g., "TASK_1_EASY")
+    task_id = env.tasks[env.current_task_idx]["id"]
+    
+    # 🎯 FIX: Start a brand NEW evaluation log for this specific task
+    log_start(task=task_id, env="opensource-maintainer-env", model=MODEL_NAME)
+    
     user_prompt = f"Ticket Type: {obs.type}\nTitle: {obs.title}\nBody: {obs.body}\n"
     if obs.code_diff:
         user_prompt += f"Code Diff:\n{obs.code_diff}\n"
 
     action_str = ""
-    # CRITICAL FIX: Base fallback is 0.01, never exactly 0.0
     current_reward = 0.01  
     is_done = False
     error_msg = None
 
     try:
-        # Call the LLM
         response = client.chat.completions.create(
             model=MODEL_NAME,
             messages=[
@@ -85,35 +78,26 @@ while True:
             temperature=0.1 
         )
         
-        # Parse the output
         llm_output = response.choices[0].message.content
         action_dict = json.loads(llm_output)
         action = MaintainerAction(**action_dict)
-        
-        # Save a clean string version of the action for the grader log
         action_str = json.dumps(action_dict)
         
-        # Feed action to environment
         new_obs, reward, done, info = env.step(action)
         current_reward = float(reward)
         is_done = bool(done)
 
     except Exception as e:
         error_msg = str(e).replace('\n', ' ')
-        is_done = True # Force stop on error so we don't loop infinitely
+        is_done = True 
 
-    rewards_list.append(current_reward)
+    # Log the step (always step=1 since each task is a single action for a maintainer)
+    log_step(step=1, action=action_str, reward=current_reward, done=is_done, error=error_msg)
 
-    # REQUIRED GRADER LOG: Step
-    log_step(step=step_count, action=action_str, reward=current_reward, done=is_done, error=error_msg)
+    # 🎯 FIX: End the evaluation log for THIS specific task
+    is_success = current_reward > 0.5 
+    log_end(success=is_success, steps=1, score=current_reward, rewards=[current_reward])
 
-    # Move to the next task, or break if done/errored
+    # Move to the next task, or break if done
     if not env.next_task() or error_msg:
         break
-
-# CRITICAL FIX: Final fallback is 0.01, never exactly 0.0
-total_score = sum(rewards_list) / len(rewards_list) if rewards_list else 0.01
-is_success = total_score > 0.5 
-
-# REQUIRED GRADER LOG: End
-log_end(success=is_success, steps=step_count, score=total_score, rewards=rewards_list)
