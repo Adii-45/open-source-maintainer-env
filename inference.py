@@ -68,7 +68,8 @@ while True:
         user_prompt += f"Code Diff:\n{obs.code_diff}\n"
 
     action_str = ""
-    current_reward = 0.0
+    # CRITICAL FIX: Base fallback is 0.01, never exactly 0.0
+    current_reward = 0.01  
     is_done = False
     error_msg = None
 
@@ -110,8 +111,8 @@ while True:
     if not env.next_task() or error_msg:
         break
 
-# Calculate final math for the grader
-total_score = sum(rewards_list) / len(rewards_list) if rewards_list else 0.0
+# CRITICAL FIX: Final fallback is 0.01, never exactly 0.0
+total_score = sum(rewards_list) / len(rewards_list) if rewards_list else 0.01
 is_success = total_score > 0.5 
 
 # REQUIRED GRADER LOG: End
