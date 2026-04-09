@@ -8,8 +8,9 @@ env = OpenSourceMaintainerEnv()
 
 @app.post("/reset")
 async def reset(payload: Optional[Dict[str, Any]] = None):
-    # The evaluation script sends an empty JSON {} to reset
-    obs = env.reset()
+    # 🚀 FIX: Safely unpack the payload and pass it to the environment!
+    payload = payload or {}
+    obs = env.reset(**payload)
     return {"observation": obs}
 
 @app.post("/step")
