@@ -65,9 +65,22 @@ class OpenSourceMaintainerEnv:
         self.current_task_idx = 0
         self.is_done = False
 
-    def reset(self) -> MaintainerObservation:
-        """Resets the environment to the current task."""
+    # 🚀 CRITICAL FIX: Allow the backend validator to request specific tasks!
+    def reset(self, task_id: Optional[str] = None, options: Optional[Dict[str, Any]] = None, **kwargs) -> MaintainerObservation:
+        """Resets the environment to the specified task, or the current one."""
         self.is_done = False
+        
+        # Sniff out the requested task_id no matter how the backend sends it
+        target_task = task_id or kwargs.get("task_id")
+        if not target_task and options and "task_id" in options:
+            target_task = options["task_id"]
+            
+        if target_task:
+            for i, task in enumerate(self.tasks):
+                if task["id"] == target_task:
+                    self.current_task_idx = i
+                    break
+                    
         return self.tasks[self.current_task_idx]["obs"]
 
     def step(self, action: MaintainerAction) -> Tuple[MaintainerObservation, float, bool, Dict[str, Any]]:
@@ -75,18 +88,16 @@ class OpenSourceMaintainerEnv:
         if self.is_done:
             raise RuntimeError("Environment is done. Please call reset().")
 
-        # Grade the action using the current task's specific grader
         current_task = self.tasks[self.current_task_idx]
         reward_model = current_task["grader"](action)
         
-        self.is_done = True # Each task is a single-step episode for now
+        self.is_done = True 
         
         info = {
             "task_id": current_task["id"],
             "feedback": reward_model.feedback
         }
 
-        # Return: observation, reward (float), done, info
         return current_task["obs"], reward_model.score, self.is_done, info
 
     def state(self) -> Dict[str, Any]:
@@ -109,7 +120,6 @@ class OpenSourceMaintainerEnv:
     # ==========================================
 
     def _grade_task_1(self, action: MaintainerAction) -> MaintainerReward:
-        # Easy: Must label as a bug.
         if action.decision == "add_labels" and "bug" in action.labels_to_add:
             return MaintainerReward(score=0.99, feedback="Perfect. Accurately labeled the frontend UI bug.")
         elif action.decision == "add_labels":
@@ -117,7 +127,6 @@ class OpenSourceMaintainerEnv:
         return MaintainerReward(score=0.01, feedback="Failed to label a clear bug report.")
 
     def _grade_task_2(self, action: MaintainerAction) -> MaintainerReward:
-        # Medium: Must recognize it's a duplicate and close it.
         if action.decision == "close_duplicate":
             return MaintainerReward(score=0.99, feedback="Correctly identified and closed the duplicate issue.")
         elif action.decision == "add_labels" and "duplicate" in action.labels_to_add:
@@ -125,7 +134,6 @@ class OpenSourceMaintainerEnv:
         return MaintainerReward(score=0.01, feedback="Failed to handle the duplicate issue.")
 
     def _grade_task_3(self, action: MaintainerAction) -> MaintainerReward:
-        # Hard: Must reject/request changes on a PR using an inefficient sorting algorithm (Bubble Sort).
         if action.decision == "request_changes":
             if "bubble sort" in action.comment.lower() or "inefficient" in action.comment.lower() or "time complexity" in action.comment.lower():
                 return MaintainerReward(score=0.99, feedback="Excellent review. Caught the O(n^2) time complexity flaw in the linked list sort.")
@@ -133,10 +141,3 @@ class OpenSourceMaintainerEnv:
         elif action.decision == "approve_pr":
             return MaintainerReward(score=0.01, feedback="Critical failure: Approved a PR with an inefficient algorithm for a core data structure.")
         return MaintainerReward(score=0.01, feedback="Did not request changes on flawed code.")
-
-# Test it natively in Colab
-if __name__ == "__main__":
-    env = OpenSourceMaintainerEnv()
-    obs = env.reset()
-    print(f"Starting state: {env.state()}")
-    print(f"First Observation: {obs.title}\n")
