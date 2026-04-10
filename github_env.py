@@ -38,7 +38,7 @@ class OpenSourceMaintainerEnv:
                     title="Navbar disappears on mobile screens",
                     body="When I shrink the browser window to mobile size, the hamburger menu doesn't show up and the links vanish.",
                 ),
-                "grader": self._grade_task_1
+                "grader": grade_task_1
             },
             {
                 "id": "TASK_2_MEDIUM",
@@ -48,7 +48,7 @@ class OpenSourceMaintainerEnv:
                     title="App crashes on startup",
                     body="Getting a NullReference exception when booting the app. Note: this looks exactly like issue #89 that was fixed yesterday.",
                 ),
-                "grader": self._grade_task_2
+                "grader": grade_task_2
             },
             {
                 "id": "TASK_3_HARD",
@@ -59,7 +59,7 @@ class OpenSourceMaintainerEnv:
                     body="Wrote a quick sorting algorithm for the linked list class.",
                     code_diff="+ def sort_list(head):\n+     # Using bubble sort for simplicity\n+     curr = head\n+     while curr:\n+         # ... nested loop implementation ...\n+     return head"
                 ),
-                "grader": self._grade_task_3
+                "grader": grade_task_3
             }
         ]
         self.current_task_idx = 0
