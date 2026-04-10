@@ -8,12 +8,12 @@ environment:
 tasks:
   - id: "TASK_1_EASY"
     difficulty: "easy"
-    grader: "github_env:OpenSourceMaintainerEnv._grade_task_1"
+    grader: "github_env:grade_task_1"
 
   - id: "TASK_2_MEDIUM"
     difficulty: "medium"
-    grader: "github_env:OpenSourceMaintainerEnv._grade_task_2"
+    grader: "github_env:grade_task_2"
 
   - id: "TASK_3_HARD"
     difficulty: "hard"
-    grader: "github_env:OpenSourceMaintainerEnv._grade_task_3"
+    grader: "github_env:grade_task_3"
