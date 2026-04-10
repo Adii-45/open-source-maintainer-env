@@ -1,14 +1,16 @@
+name: opensource-maintainer-env
+version: 0.1.0
+description: An environment simulating an open-source repo maintainer triaging issues and reviewing PRs.
+entrypoint: server.app:app
+type: http
 spec_version: "1.0"
-
-environment:
-  name: "opensource-maintainer-env"
-  description: "An environment simulating an open-source repo maintainer triaging issues and reviewing PRs."
-  entrypoint: "github_env:OpenSourceMaintainerEnv"
-
 tasks:
-  - id: "TASK_1_EASY"
-    difficulty: "easy"
-  - id: "TASK_2_MEDIUM"
-    difficulty: "medium"
-  - id: "TASK_3_HARD"
-    difficulty: "hard"
+  - id: TASK_1_EASY
+    name: "Easy Triage Task"
+    description: "Label a clear frontend bug report correctly."
+  - id: TASK_2_MEDIUM
+    name: "Medium Triage Task"
+    description: "Identify and close a duplicate issue."
+  - id: TASK_3_HARD
+    name: "Hard Review Task"
+    description: "Review a PR with an inefficient algorithm and request changes with explanation."
