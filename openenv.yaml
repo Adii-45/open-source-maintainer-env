@@ -1,12 +1,19 @@
 spec_version: "1.0"
+
 environment:
   name: "opensource-maintainer-env"
   description: "An environment simulating an open-source repo maintainer triaging issues and reviewing PRs."
   entrypoint: "github_env:OpenSourceMaintainerEnv"
+
 tasks:
   - id: "TASK_1_EASY"
     difficulty: "easy"
+    grader: "github_env:OpenSourceMaintainerEnv._grade_task_1"
+
   - id: "TASK_2_MEDIUM"
     difficulty: "medium"
+    grader: "github_env:OpenSourceMaintainerEnv._grade_task_2"
+
   - id: "TASK_3_HARD"
     difficulty: "hard"
+    grader: "github_env:OpenSourceMaintainerEnv._grade_task_3"
