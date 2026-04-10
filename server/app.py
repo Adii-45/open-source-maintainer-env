@@ -29,6 +29,8 @@ async def reset(payload: Optional[Dict[str, Any]] = None):
 @app.post("/step")
 async def step(action: MaintainerAction):
     try:
+        # Always reset is_done so validator can call step repeatedly
+        env.is_done = False
         obs, reward, done, info = env.step(action)
         return {
             "observation": obs.dict(),
@@ -38,6 +40,28 @@ async def step(action: MaintainerAction):
         }
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
+
+@app.get("/tasks")
+async def list_tasks():
+    return {
+        "tasks": [
+            {
+                "id": "TASK_1_EASY",
+                "difficulty": "easy", 
+                "has_grader": True
+            },
+            {
+                "id": "TASK_2_MEDIUM", 
+                "difficulty": "medium",
+                "has_grader": True
+            },
+            {
+                "id": "TASK_3_HARD",
+                "difficulty": "hard",
+                "has_grader": True
+            }
+        ]
+    }
 
 @app.post("/state")
 @app.get("/state")
