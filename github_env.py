@@ -19,7 +19,7 @@ class MaintainerAction(BaseModel):
     comment: str = ""
 
 class MaintainerReward(BaseModel):
-    score: float = Field(gt=0.0, lt=1.0)
+    score: float = Field(ge=0.0, le=1.0)  # was gt/lt (exclusive), now ge/le (inclusive)
     feedback: str
 
 # ==========================================
